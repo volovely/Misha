@@ -636,7 +636,7 @@ h1 {
   let timers = [];
   let particles = [];
   let burstFrame = 0;
-  let countFrame = 0;
+  let countTimer = 0;
   let lastFrameTime = 0;
 
   const later = (fn, ms) => timers.push(setTimeout(fn, ms));
@@ -748,7 +748,10 @@ h1 {
     const duration = 1300;
     const start = performance.now();
     let lastTick = 0;
-    const step = (now) => {
+    // A timer, not requestAnimationFrame: the amount must reach 1000 even if
+    // the browser is holding back animation frames.
+    countTimer = setInterval(() => {
+      const now = performance.now();
       const t = Math.min(1, (now - start) / duration);
       const eased = 1 - Math.pow(1 - t, 3);
       amountEl.textContent = Math.round(AMOUNT * eased);
@@ -757,13 +760,12 @@ h1 {
           sfxTick(eased);
           lastTick = now;
         }
-        countFrame = requestAnimationFrame(step);
-      } else {
-        countFrame = 0;
-        sfxFanfare();
+        return;
       }
-    };
-    countFrame = requestAnimationFrame(step);
+      clearInterval(countTimer);
+      countTimer = 0;
+      sfxFanfare();
+    }, 30);
   }
 
   function openEnvelope() {
@@ -788,8 +790,8 @@ h1 {
     timers.forEach(clearTimeout);
     timers = [];
     cancelAnimationFrame(burstFrame);
-    cancelAnimationFrame(countFrame);
-    burstFrame = countFrame = 0;
+    clearInterval(countTimer);
+    burstFrame = countTimer = 0;
     particles.forEach((p) => p.el.remove());
     particles = [];
     amountEl.textContent = '0';
